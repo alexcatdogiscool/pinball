@@ -33,46 +33,9 @@ myfont = pg.font.SysFont('Comic Sans MS', 30)
 
 
 ball = objs.puck()
-ball.x = 470
-ball.y = 630
-ball.vel.angle = -math.pi/2
-ball.vel.mag = 4.9
-
-
-
-bouncers = []
-b = objs.bounce(300,200)
-bouncers.append(b)
-b = objs.bounce(360,200)
-bouncers.append(b)
-b = objs.bounce(330,240)
-bouncers.append(b)
 
 walls = []
-w = objs.wall((460,640), (480,640))
-walls.append(w)
-w = objs.wall((460,640), (460,120))
-walls.append(w)
-w = objs.wall((480, 640), (480,100))
-walls.append(w)
-w = objs.wall((480, 100), (430,50))
-walls.append(w)
-w = objs.wall((460, 640), (30,640))
-walls.append(w)
-w = objs.wall((30, 640), (30,50))
-walls.append(w)
-w = objs.wall((30, 50), (430,50))
-walls.append(w)
-
-w = objs.wall((180, 570), (30,500))
-w.bounce = 1.3
-walls.append(w)
-w = objs.wall((310, 570), (460,500))
-w.bounce = 1.3
-walls.append(w)
-
-
-
+bouncers = []
 flippers = []
 f = objs.flipper(310, 570, walls)
 f.bouncePos = (310-30, 570-7)
@@ -96,6 +59,12 @@ delBut.text = "Delete Mode"
 delBut.colour = (200,55,55)
 mapDel = False
 delPres = False
+editBut = objs.button(0,670,150,30)
+editBut.text = "Edit Map"
+editBut.colour = (75, 232, 58)
+mapEditMode = False
+mapEd = False
+
 
 
 
@@ -105,19 +74,17 @@ clock = pg.time.Clock()
 
 points = 0
 
-f = open('score.txt', 'r')
-hiScore = int(f.read().replace("\n", ""))
 
+mapNum = 0
 editing = False
-selecting = False
-playing = True
+selecting = True
+playing = False
 running = True
 while running:
     clock.tick(120)
     keys = pg.key.get_pressed()
     mx,my = pg.mouse.get_pos()
     m1, m3, m2 = pg.mouse.get_pressed()
-    #print(mx,my)
     
 
     if not selecting and not editing:
@@ -127,7 +94,7 @@ while running:
             f.draw(screen)
             if f.flipped and not f.prev:
                 d = funcs.norm(ball.x-f.bouncePos[0], ball.y-f.bouncePos[1])
-                if d < 25:
+                if d < 20 + ball.rad:
                     bv = objs.vector(random.uniform(3,6), -math.pi/2+random.uniform(-math.pi/4, math.pi/4))
                     ball.vel.mag = 0
                     ball.vel = funcs.vectadd(ball.vel, bv)
@@ -142,7 +109,7 @@ while running:
         for b in bouncers:
             b.draw(screen)
             d = funcs.norm(b.x-ball.x, b.y-ball.y)
-            if d < b.rad + 2:
+            if d < b.rad + ball.rad:
                 angle2 = math.atan2(ball.y-b.y, ball.x-b.x)
                 bv = objs.vector(ball.vel.mag * b.bounce, angle2)
                 ball.vel = funcs.vectadd(ball.vel, bv)
@@ -153,7 +120,7 @@ while running:
         for w in walls:
             w.draw(screen)
             d = abs(funcs.linedst(w, ball))
-            if d < 5:
+            if d < 1 + ball.rad:
                 lineA = math.atan2(w.start[1]-w.end[1], w.start[0]-w.end[0])
                 a = lineA - math.pi/2
                 temp = ball.vel.angle - lineA
@@ -170,12 +137,15 @@ while running:
 
         if ball.y > 630 and playing:
             playing = False
-            f = open('score.txt', 'r')
-            hiScore = int(f.read().replace("\n", ""))
             if points > hiScore:
-                f = open('score.txt', 'w')
-                f.write(str(points))
-                hiScore = points
+                for f in flippers:
+                    f.w.start = (0,0)
+                    f.w.end = (0,0)
+                funcs.updateMap(mapNum, walls, bouncers, points)
+                for f in flippers:
+                    f.w.start = (f.x, f.y)
+                w,b,f, hiScore = funcs.loadMap(mapNum)
+                points = 0
             ball.vel = objs.vector(0,0)
             ball.x = 470
             ball.y = 630
@@ -201,12 +171,6 @@ while running:
             ball.vel.mag = random.uniform(4.8,6)
             playing = True
             points = 0
-
-        if keys[pg.K_s] and not sPre:
-            for f in flippers:
-                f.w.start = (0,0)
-                f.w.end = (0,0)
-            funcs.saveMap(walls, bouncers)
             
 
         mapsB.draw(screen)
@@ -220,19 +184,51 @@ while running:
         delBut.text = "Delete Map"
 
     if selecting:
-        buttons, newMapB = funcs.displayPrev(screen, 0)
+        buttons, newMapB = funcs.displayPrev(screen, (0,0,0))
+        if mapDel:
+            buttons, newMapB = funcs.displayPrev(screen, (200,55,55))
+        if mapEditMode:
+            buttons, newMapB = funcs.displayPrev(screen, (75, 232, 58))
+            
+        
+        for b in buttons:
+            b.draw(screen)
         delBut.draw(screen)
         delPres = delBut.detect(mx,my, m1)
         if delPres and not delButPre:
             mapDel = not mapDel
+        editBut.draw(screen)
+        mapEd = editBut.detect(mx,my,m1)
+        if mapEd and not mapEdPre:
+            mapEditMode = not mapEditMode
         i = -1
         for b in buttons:
             i += 1
+            if b.detect(mx,my,m1) and mapEditMode and not m1Pre:
+                editing = True
+                selecting = False
+                saveButton = objs.button(385,10, 115,40)
+                saveButton.text = "Save Map"
+                saveButton.colour = (75, 232, 58)
+                wallSel = objs.wall((10,50), (40,10))
+                wallSelButton = objs.button(10, 10, 40,40)
+                wallSelButton.fill = 1
+                bounceSel = objs.bounce(75,30)
+                bounceSelButton = objs.button(60, 15, 30,30)
+                bounceSelButton.fill = 1
+                selWall = False
+                selBounce = False
+                wallPressPre = wallSelButton.detect(mx,my,m1)
+                bouncePressPre = bounceSelButton.detect(mx,my,m1)
+                Ewalls, Ebouncers, flippers, s = funcs.loadMap(i)
+                del Ewalls[-1]
+                del Ewalls[-1]
             if b.detect(mx,my,m1) and mapDel and not m1Pre:
                 funcs.deleteMap(i)
             if b.detect(mx,my,m1) and not mapDel and not m1Pre:
                 selecting = False
-                walls, bouncers, flippers = funcs.loadMap(i)
+                walls, bouncers, flippers, hiScore = funcs.loadMap(i)
+                mapNum = i
                 ball.x = 470
                 ball.y = 630
                 ball.vel = objs.vector(0,0)
@@ -242,7 +238,7 @@ while running:
             editing = tmpE
             selecting = not tmpE
         if editing:
-            saveButton = objs.button(100,10, 110,40)
+            saveButton = objs.button(385,10, 115,40)
             saveButton.text = "Save Map"
             saveButton.colour = (75, 232, 58)
             wallSel = objs.wall((10,50), (40,10))
@@ -255,14 +251,13 @@ while running:
             selBounce = False
             wallPressPre = wallSelButton.detect(mx,my,m1)
             bouncePressPre = bounceSelButton.detect(mx,my,m1)
-            Ebouncers = []
-            Ewalls = []
+            if not mapEditMode:
+                Ebouncers = []
+                Ewalls = []
 
 
     if editing:
-        pg.draw.circle(screen, (255,255,255), (470, 630), 5)
-
-
+        pg.draw.circle(screen, (255,255,255), (470, 630), ball.rad)
 
         for f in flippers:
             f.draw(screen)
@@ -274,7 +269,7 @@ while running:
         saveButton.draw(screen)
 
         if saveButton.detect(mx,my,m1):
-            funcs.saveMap(Ewalls, Ebouncers)
+            funcs.saveMap(Ewalls, Ebouncers, 0)
             editing = False
             selecting = True
 
@@ -291,42 +286,92 @@ while running:
             tmpBounce.draw(screen)
             if m1 and not m1Pre:
                 Ebouncers.append(tmpBounce)
-                selBounce = False
+                tmpBounce = objs.bounce(mx,my)
 
         if selWall:
             tmpWall.draw(screen)
             if ending:
+                dst = 1000
+                for w in Ewalls:
+                    tmx, tmy = pg.mouse.get_pos()
+                    tmpDS = funcs.norm(tmx-w.start[0], tmy-w.start[1])
+                    tmpDE = funcs.norm(tmx-w.end[0], tmy-w.end[1])
+                    tmpD = min(tmpDS, tmpDE)
+                    if tmpD < dst:
+                        dst = tmpD
+                        if tmpDS < tmpDE:
+                            mx, my = w.start
+                        else:
+                            mx, my = w.end
+                if dst > 10:
+                    mx, my = pg.mouse.get_pos()
                 tmpWall.end = (mx,my)
                 if m1 and not m1Pre:
                     Ewalls.append(tmpWall)
-                    selWall = False
+                    tmpWall = objs.wall((0,0), (0,0))
+                    #selWall = False
             if m1 and not m1Pre and not ending:
+                dst = 1000
+                for w in Ewalls:
+                    tmx, tmy = pg.mouse.get_pos()
+                    tmpDS = funcs.norm(tmx-w.start[0], tmy-w.start[1])
+                    tmpDE = funcs.norm(tmx-w.end[0], tmy-w.end[1])
+                    tmpD = min(tmpDS, tmpDE)
+                    if tmpD < dst:
+                        dst = tmpD
+                        if tmpDS < tmpDE:
+                            mx, my = w.start
+                        else:
+                            mx, my = w.end
+                if dst > 10:
+                    mx, my = pg.mouse.get_pos()
                 tmpWall.start = (mx,my)
                 ending = True
+            if ending and tmpWall.start == (0,0):
+                ending = False
             
 
 
         if wallPress and not wallPressPre:
+            selBounce = False
+            if len(Ebouncers) > 0:
+                del Ebouncers[-1]
             selWall = not selWall
             if selWall:
                 tmpWall = objs.wall((0,0), (0,0))
                 ending = False
         if bouncePress and not bouncePressPre:
+            selWall = False
             selBounce = not selBounce
             if selBounce:
                 tmpBounce = objs.bounce(0,0)
 
-
-
-
-        
-        
         wallPressPre = wallSelButton.detect(mx,my,m1)
         bouncePressPre = bounceSelButton.detect(mx,my,m1)
+        if m2 and not m2Pre:
+            i = -1
+            for b in Ebouncers:
+                i += 1
+                d = funcs.norm(mx-b.x, my-b.y)
+                if d < b.rad:
+                    del Ebouncers[i]
+                    break
+            i = -1
+            for w in Ewalls:
+                i += 1
+                d = funcs.linedst(w, objs.point(mx,my))
+                if d < 5:
+                    del Ewalls[i]
+                    break
+
+                
+
 
 
 
     m1Pre = m1
+    m2Pre = m2
+    mapEdPre = mapEd
     delButPre = delPres
     sPre = keys[pg.K_s]
     pg.display.flip()

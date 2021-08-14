@@ -1,0 +1,22 @@
+    convinence update:
+#wall snapping
+#points are linked to maps
+#deleting walls and bouncers
+#edit exsisting map
+#map selection screen goes red when in "Deleting Map" mode
+
+    feature update:
+obsicle editor
+variable bouncyness for wall and bumpers
+variable ball and bumper sizes
+more obsicles
+
+    asthetic update:
+custom background
+make things look good lol
+graphics
+
+
+
+
+

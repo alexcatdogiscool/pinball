@@ -6,6 +6,11 @@ pg.font.init()
 myfont = pg.font.SysFont('Comic Sans MS', 25)
 
 
+class point:
+    def __init__(self,x,y):
+        self.x = x
+        self.y = y
+
 class vector:
     def __init__(self, mag, angle):
         self.mag = mag
@@ -67,8 +72,9 @@ class puck:
         self.x = 0
         self.y = 0
         self.vel = vector(0,0)
+        self.rad = 5
     def draw(self, surface):
-        pg.draw.circle(surface, (255,255,255), (int(self.x),int(self.y)), 5)
+        pg.draw.circle(surface, (255,255,255), (int(self.x),int(self.y)), self.rad)
     def phys(self, g):
         if self.vel.mag > 10:
             self.vel.mag = 10

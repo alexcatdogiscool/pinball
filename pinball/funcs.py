@@ -32,8 +32,9 @@ def linedst(line, point):
     return d1
 
 
-def saveMap(walls, bouncers):
+def saveMap(walls, bouncers, score):
     f = open('map.txt', 'a')# [(sx,sy,ex,ey(wall2(wall3(etc[(x,y(bouncer2(etc
+    f.write(str(score))
     f.write('[')
     for w in walls:
         f.write('(')
@@ -53,6 +54,7 @@ def loadMap(mapSel):
     data = f.read().split("+")[mapSel]
 
     objects = data.split("[")
+    score = int(objects[0])
     walls = objects[1].split("(")
     del walls[0]
     bouncers = objects[2].split("(")
@@ -84,11 +86,35 @@ def loadMap(mapSel):
     f.endI = ((math.cos(f.idleA)*f.length)+f.x, (math.sin(f.idleA)*f.length)+f.y)
     flippers.append(f)
 
-    return walllst, bouncerlst, flippers
+    return walllst, bouncerlst, flippers, score
 
 
+def updateMap(mapNum, walls, bouncers, score):
+    f = open('map.txt', 'r')
+    data = f.read().split("+")
+    
+    f = []
+    f.append(str(score))
+    f.append('[')
+    for w in walls:
+        f.append('(')
+        f.append(str(int(w.start[0])) + ',' + str(int(w.start[1])) + ',' + str(int(w.end[0])) + ',' + str(int(w.end[1])))
+    f.append('[')
+    for b in bouncers:
+        f.append('(')
+        f.append(str(int(b.x)) + ',' + str((b.y)))
+    #f.append("+")
+    newMap = ''.join(f)
 
-def displayPrev(surface, mapSel):
+    data[mapNum] = newMap
+
+    newD = '+'.join(data)
+    f = open('map.txt', 'w')
+    f.write(newD)
+    f.close()
+
+
+def displayPrev(surface, buttonColour):
     f = open('map.txt')
     mapNum = (f.read().split("+"))
     del mapNum[0]
@@ -99,25 +125,26 @@ def displayPrev(surface, mapSel):
     ymult = 0
 
     for i in range(mapNum):
-        walls, bouncers, flippers = loadMap(i)
-        ymult = (i // 3)
-        b = objs.button((i-(3*ymult))*100, (ymult * 140), 100, 130)
+        walls, bouncers, flippers, points = loadMap(i)
+        ymult = (i // 4)
+        b = objs.button((i-(4*ymult))*100, (ymult * 140), 100, 130)
+        b.fill = 1
+        b.colour = buttonColour
         buttons.append(b)
         for w in walls:
-            w.start = (w.start[0] // 5 + ((i-(3*ymult))*100), w.start[1] // 5 + (ymult * 140))
-            w.end = (w.end[0] // 5 + ((i-(3*ymult))*100), w.end[1] // 5 + (ymult * 140))
+            w.start = (w.start[0] // 5 + ((i-(4*ymult))*100), w.start[1] // 5 + (ymult * 140))
+            w.end = (w.end[0] // 5 + ((i-(4*ymult))*100), w.end[1] // 5 + (ymult * 140))
             w.draw(surface)
         for b in bouncers:
-            b.x = b.x // 5 + ((i-(3*ymult))*100)
+            b.x = b.x // 5 + ((i-(4*ymult))*100)
             b.y = b.y // 5 + (ymult * 140)
             b.rad //= 5
             b.draw(surface)
 
-    ymult = mapNum // 3
-    newMapB = objs.button(((mapNum-(3*ymult))*100), (ymult * 140), 100, 130)
+    ymult = mapNum // 4
+    newMapB = objs.button(((mapNum-(4*ymult))*100), (ymult * 140), 100, 130)
     newMapB.fill = 3
     newMapB.text = "NewMap"
-
     return buttons, newMapB
 
     
@@ -129,3 +156,5 @@ def deleteMap(mapNum):
     data = d.join(data)
     f = open('map.txt', 'w')
     f.write(data)
+
+
